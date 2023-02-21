@@ -1,0 +1,4 @@
+name: gg_job_search_env
+channels:
+  - defaults
+prefix: /home/axel/anaconda3/envs/gg_job_search_env
