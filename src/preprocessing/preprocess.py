@@ -1,3 +1,7 @@
+import pandas as pd
+
+
+
 def get_salary_col(df):
     
     # Extract salary from extensions col
