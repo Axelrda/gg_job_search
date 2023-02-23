@@ -1,0 +1,2 @@
+[console_scripts]
+preprocess = preprocessing.preprocess:main
