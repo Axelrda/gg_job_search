@@ -8,27 +8,27 @@ import requests
 def get_salary_col(df):
     
     # Extract salary from extensions col
-    df['salary'] = pd.Series(df.extensions.str.split(', ', expand=True)[1])
+    df['extracted_salary'] = pd.Series(df.extensions.str.split(', ', expand=True)[1])
        
     # Replace non-salary values to np.NaN
-    df['salary'].replace(["'à plein temps']", "'à temps partiel']", "'stage']", "'prestataire']"], np.NaN, inplace=True)
+    df['extracted_salary'].replace(["'à plein temps']", "'à temps partiel']", "'stage']", "'prestataire']"], np.NaN, inplace=True)
     
     # Convert null values to Nothing_found to make parsing easier
-    df.at[df.salary.isnull(), 'salary'] = "nothing_found"
+    df.at[df.extracted_salary.isnull(), 'extracted_salary'] = "nothing_found"
     
     return df
 
 
 def get_og_salary_currency(df):
     
-    df['og_salary_currency'] = df.salary.str.extract(r'(\€|\$us)', flags=re.IGNORECASE)
+    df['og_salary_currency'] = df.extracted_salary.str.extract(r'(\€|\$us)', flags=re.IGNORECASE)
     
     return df
 
 
 def get_og_salary_period(df):
     
-    df['og_salary_period'] = df.salary.str.extract(r'(\ban\b|\bmois\b|\bjour\b)', flags=re.IGNORECASE)
+    df['og_salary_period'] = df.extracted_salary.str.extract(r'(\ban\b|\bmois\b|\bjour\b)', flags=re.IGNORECASE)
     
     return df
     
@@ -38,7 +38,7 @@ def clean_salary(df):
     
         ####### targeted clean for easier parsing #######
 
-        for index, salary_str in enumerate(df.salary):
+        for index, salary_str in enumerate(df.extracted_salary):
                 
                 if 'nothing_found' not in salary_str:
                     
@@ -56,7 +56,7 @@ def clean_salary(df):
                     salary_str = salary_str.replace("€", "")
                     salary_str = salary_str.replace("$us", "")
 
-                    df.at[index, 'salary'] = salary_str
+                    df.at[index, 'extracted_salary'] = salary_str
                     
         return df
 
@@ -66,14 +66,14 @@ def get_salary_range_and_mean(df):
         for index, row in df.iterrows():
     
             # extract boundaries of YEAR salaries given as a range + calculate mean salary
-            if (row['og_salary_period'] == 'an') and 'à' in row['salary']:
+            if (row['og_salary_period'] == 'an') and 'à' in row['extracted_salary']:
 
                 # remove k 
-                row['salary'] = row['salary'].replace('k', '000')
+                row['extracted_salary'] = row['extracted_salary'].replace('k', '000')
 
                 # get upper and lower bounds
-                lower_bound = float(row.salary.split(' à ')[0].split(',')[0])
-                upper_bound = float(row.salary.split(' à ')[1].split(',')[0])
+                lower_bound = float(row.extracted_salary.split(' à ')[0].split(',')[0])
+                upper_bound = float(row.extracted_salary.split(' à ')[1].split(',')[0])
 
                 # re-establish a consistent value regarding to common year salaries
                 if lower_bound < 1000:
@@ -92,35 +92,35 @@ def get_salary_range_and_mean(df):
             
 
             # extract discrete YEAR salaries        
-            elif (row['og_salary_period'] == 'an') and 'à' not in row['salary']:
+            elif (row['og_salary_period'] == 'an') and 'à' not in row['extracted_salary']:
 
                 # remove k
-                row['salary'] = row['salary'].replace('k', '000')
-                row['salary'] = row['salary'].replace(',', '.')
+                row['extracted_salary'] = row['extracted_salary'].replace('k', '000')
+                row['extracted_salary'] = row['extracted_salary'].replace(',', '.')
 
                 # convert value to float
-                row['salary'] = float(row['salary'])
+                row['extracted_salary'] = float(row['extracted_salary'])
 
                 # re-establish a consistent value regarding to common year salaries
-                if row['salary'] < 1000:
-                    row['salary'] = row['salary'] * 1000
+                if row['extracted_salary'] < 1000:
+                    row['extracted_salary'] = row['extracted_salary'] * 1000
 
                 # assign result to discrete salary column
-                df.at[index, 'discrete_salary'] = row['salary']
+                df.at[index, 'discrete_salary'] = row['extracted_salary']
 
                 
 
             
             # extract boundaries of MONTH salaries given as a range + calculate mean salary   
-            elif (row['og_salary_period'] == 'mois') and 'à' in row['salary']:
+            elif (row['og_salary_period'] == 'mois') and 'à' in row['extracted_salary']:
 
                 # remove k and replace commas
-                row['salary'] = row['salary'].replace('k', '00')
-                row['salary'] = row['salary'].replace(',', '.')
+                row['extracted_salary'] = row['extracted_salary'].replace('k', '00')
+                row['extracted_salary'] = row['extracted_salary'].replace(',', '.')
 
                 # get upper and lower bounds
-                lower_bound = float(row.salary.split(' à ')[0])
-                upper_bound = float(row.salary.split(' à ')[1])
+                lower_bound = float(row.extracted_salary.split(' à ')[0])
+                upper_bound = float(row.extracted_salary.split(' à ')[1])
 
                 # re-establish a consistent value regarding to common month salaries
                 if lower_bound < 10:
@@ -144,32 +144,35 @@ def get_salary_range_and_mean(df):
 
 
             # extract discrete MONTH salaries        
-            elif (row['og_salary_period'] == 'mois') and 'à' not in row['salary']:
+            elif (row['og_salary_period'] == 'mois') and 'à' not in row['extracted_salary']:
 
                 # remove k and replace commas
-                row['salary'] = row['salary'].replace('k', '00')
-                row['salary'] = row['salary'].replace(',', '.')
+                row['extracted_salary'] = row['extracted_salary'].replace('k', '00')
+                row['extracted_salary'] = row['extracted_salary'].replace(',', '.')
 
                 # convert value to float
-                row['salary'] = float(row['salary'])
+                row['extracted_salary'] = float(row['extracted_salary'])
 
 
-                # re-establish a consistent value regarding to common year salaries
-                if row['salary'] < 1000:
-                    row['salary'] = row['salary'] * 1000
-
+                # re-establish a consistent value regarding to common year salaries 
+                if row['extracted_salary'] < 1000 and type(row['employment_type']) == str and row['employment_type'] not in ['internship', 'apprenticeship']:
+                    row['extracted_salary'] = row['extracted_salary'] * 1000
+                 
+                elif row['extracted_salary'] < 100:
+                    row['extracted_salary'] = row['extracted_salary'] * 1000
+            
+                elif row['extracted_salary'] < 1000 and type(row['employment_type']) == str and row['employment_type'] in ['internship', 'apprenticeship']:
+                    row['extracted_salary'] = row['extracted_salary']
+                
                 # assign result to discrete salary column
-                df.at[index, 'discrete_salary'] = row['salary']                 
-            
-            
-            
+                df.at[index, 'discrete_salary'] = row['extracted_salary']
             
             # extract boundaries of DAY salaries given as a range + calculate mean salary   
-            elif (row['og_salary_period'] == 'jour') and 'à' in row['salary']:
+            elif (row['og_salary_period'] == 'jour') and 'à' in row['extracted_salary']:
                 
                 # get upper and lower bounds
-                lower_bound = float(row.salary.split(' à ')[0])
-                upper_bound = float(row.salary.split(' à ')[1])
+                lower_bound = float(row.extracted_salary.split(' à ')[0])
+                upper_bound = float(row.extracted_salary.split(' à ')[1])
 
                 # get upper / lower bound and discrete_salary columns
                 df.at[index, 'lower_bound'] = lower_bound
