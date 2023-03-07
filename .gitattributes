@@ -1,1 +1,9 @@
 data/gg_job_search_all_RAW.csv filter=lfs diff=lfs merge=lfs -text
+
+# Merge Driver for MakinaRocks Link Git
+# Visit https://makinarocks.gitbook.io/link/features/version-control/conflict-management#link-git-merge-driver for details
+*.ipynb merge=mrx_link_git_merger
+
+# Merge Driver for MakinaRocks Link Git
+# Visit https://makinarocks.gitbook.io/link/features/version-control/conflict-management#link-git-merge-driver for details
+*.ipynb merge=mrx_link_git_merger
