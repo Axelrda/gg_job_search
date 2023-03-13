@@ -76,11 +76,11 @@ def get_salary_range_and_mean(df):
                 upper_bound = float(row.extracted_salary.split(' à ')[1].split(',')[0])
 
                 # re-establish a consistent value regarding to common year salaries
-                if lower_bound < 1000:
+                if lower_bound < 200:
                     lower_bound = lower_bound * 1000
 
-                if upper_bound < 1000:
-                    upper_bound = upper_bound * 1000
+                if upper_bound < 200:
+                    upper_bound = upper_bound * 100
                 
                 # get upper / lower bound and discrete_salary columns
                 df.at[index, 'lower_bound'] = lower_bound
