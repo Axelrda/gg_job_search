@@ -54,7 +54,7 @@ def collect_data_w_serpapi(uule_code):
     for query in SEARCH_QUERIES:
 
         # serpapi will iterate up to n number of iterations
-        for num  in range(45):
+        for num  in range(55):
 
             start = num * 10
 
@@ -69,7 +69,7 @@ def collect_data_w_serpapi(uule_code):
                 'gl': 'fr',                                 # country of the search
                 'engine': 'google_jobs',                    # SerpApi search engine
                 'start': start,                             # pagination
-                'chips': 'date_posted:today'  #'data_range:2023-02-03'   #'date_posted:today'                 
+                'chips': 'data_range:2023-05-18'  #'data_range:2023-05-18'   #'date_posted:today'                 
             }
 
             # get results 
