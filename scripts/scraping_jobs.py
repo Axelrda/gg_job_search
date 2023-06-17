@@ -23,7 +23,7 @@ TARGET_TYPE = 'Country'
 def get_canonical_name():
 
     # Connect to SQLite and create a new database (or open it if it already exists)
-    conn = sqlite3.connect('jobs_database.db')
+    conn = sqlite3.connect('db/jobs_database.db')
     cursor = conn.cursor()
 
     # get canonical name for location of interest ==> FRANCE
@@ -54,7 +54,7 @@ def collect_data_w_serpapi(uule_code):
     for query in SEARCH_QUERIES:
 
         # serpapi will iterate up to n number of iterations
-        for num  in range(55):
+        for num  in range(50):
 
             start = num * 10
 
@@ -69,7 +69,7 @@ def collect_data_w_serpapi(uule_code):
                 'gl': 'fr',                                 # country of the search
                 'engine': 'google_jobs',                    # SerpApi search engine
                 'start': start,                             # pagination
-                'chips': 'data_range:2023-05-18'  #'data_range:2023-05-18'   #'date_posted:today'                 
+                'chips': 'date_posted:today'  #'data_range:2023-05-18'   #'date_posted:today'                 
             }
 
             # get results 
@@ -112,9 +112,15 @@ def collect_data_w_serpapi(uule_code):
     all_jobs_queries = all_jobs_queries.reindex(columns=['title', 'company_name', 'location', 'via', 'description',
        'job_highlights', 'related_links', 'thumbnail', 'extensions', 'job_id',
        'posted_at', 'schedule_type', 'date_time', 'search_query'])
+    
+    all_jobs_queries.to_csv('all_jobs.csv', index=False)
+
+    # convert value to str format (sql database doesn't accept list type)
+    for column in all_jobs_queries.columns:
+        all_jobs_queries[column] = all_jobs_queries[column].apply(lambda x: str(x) if isinstance(x, list) else x)
 
     # export data to database
-    with sqlite3.connect('jobs_database.db') as conn:
+    with sqlite3.connect('db/jobs_database.db') as conn:
         all_jobs_queries.to_sql('unprocessed_data', conn, if_exists='append', index=False)
 
     print("Shape of df:", all_jobs_queries.shape)
