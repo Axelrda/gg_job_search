@@ -14,6 +14,11 @@ import uule_grabber
 # connect to SQLite database
 import sqlite3
 
+import os
+
+BASE_DIR = '/home/axel/Documents/gg_job_search'
+db_path = os.path.join(BASE_DIR, 'db/jobs_database.db')
+
 
 API_KEY = '4b799b64af09be918f6d66d6e908184cba836c46596e58bfa8bf1fb9280e7f09' 
 SEARCH_QUERIES = ["machine learning engineer", "data scientist", "data analyst", "data engineer"]
@@ -23,7 +28,7 @@ TARGET_TYPE = 'Country'
 def get_canonical_name():
 
     # Connect to SQLite and create a new database (or open it if it already exists)
-    conn = sqlite3.connect('db/jobs_database.db')
+    conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     # get canonical name for location of interest ==> FRANCE
@@ -120,7 +125,7 @@ def collect_data_w_serpapi(uule_code):
         all_jobs_queries[column] = all_jobs_queries[column].apply(lambda x: str(x) if isinstance(x, list) else x)
 
     # export data to database
-    with sqlite3.connect('db/jobs_database.db') as conn:
+    with sqlite3.connect(db_path) as conn:
         all_jobs_queries.to_sql('unprocessed_data', conn, if_exists='append', index=False)
 
     print("Shape of df:", all_jobs_queries.shape)
