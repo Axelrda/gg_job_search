@@ -31,18 +31,18 @@ def get_canonical_name():
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
-    # get canonical name for location of interest ==> FRANCE
-    cursor.execute("""
+    try:
+        # get canonical name for location of interest ==> FRANCE
+        cursor.execute("""
+            SELECT "Canonical Name" 
+            FROM google_geotargets 
+            WHERE "Target Type" = ? AND "Country Code" = ?;
+        """, (TARGET_TYPE, COUNTRY_CODE))
 
-        SELECT "Canonical Name" 
-        FROM google_geotargets 
-        WHERE "Target Type" = ? AND "Country Code" = ?;
+        canonical_name = cursor.fetchall()[0][0]
 
-    """, (TARGET_TYPE, COUNTRY_CODE))
-
-    canonical_name = cursor.fetchall()[0][0]
-
-    conn.close()
+    finally:
+        conn.close()
 
     return canonical_name
 
