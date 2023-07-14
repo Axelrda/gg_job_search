@@ -13,11 +13,19 @@ dag = DAG(
     'gg_jobs_search',
     default_args=default_args,
     description='',
-    schedule='30 23 * * *',  # Run daily at 23:30
+    schedule='00 22 * * *',  # Run daily at 10pm
 )
 
-task1 = BashOperator(
+scrape_jobs_task = BashOperator(
     task_id='run_scraping_script',
     bash_command='python /home/axel/Documents/gg_job_search/scripts/scraping_jobs.py',
     dag=dag,
 )
+
+sql_deduplicate_task = BashOperator(
+    task_id='run_sql_deduplication_script',
+    bash_command='python /home/axel/Documents/gg_job_search/src/cleaning/sql_deduplication.py',
+    dag=dag
+)
+
+scrape_jobs_task >> sql_deduplicate_task
