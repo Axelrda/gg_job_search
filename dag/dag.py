@@ -18,13 +18,13 @@ dag = DAG(
 
 scrape_jobs_task = BashOperator(
     task_id='run_scraping_script',
-    bash_command='python /home/axel/Documents/gg_job_search/scripts/scraping_jobs.py',
+    bash_command='/home/axel/anaconda3/envs/gg_job_search/bin/python /home/axel/Documents/gg_job_search/scripts/scraping_jobs.py',
     dag=dag,
 )
 
 sql_deduplicate_task = BashOperator(
     task_id='run_sql_deduplication_script',
-    bash_command='python /home/axel/Documents/gg_job_search/src/cleaning/sql_deduplication.py',
+    bash_command='/home/axel/anaconda3/envs/gg_job_search/bin/python /home/axel/Documents/gg_job_search/src/cleaning/sql_deduplication.py',
     dag=dag
 )
 

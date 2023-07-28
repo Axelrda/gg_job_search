@@ -17,8 +17,6 @@ import sqlite3
 # necessary for path to files
 from config import DB_PATH
 
-import os
-
 API_KEY = '4b799b64af09be918f6d66d6e908184cba836c46596e58bfa8bf1fb9280e7f09' 
 SEARCH_QUERIES = ["machine learning engineer", "data scientist", "data analyst", "data engineer"]
 COUNTRY_CODE = 'FR'
@@ -73,7 +71,7 @@ def collect_data_w_serpapi(uule_code):
                 'gl': 'fr',                                 # country of the search
                 'engine': 'google_jobs',                    # SerpApi search engine
                 'start': start,                             # pagination
-                'chips': 'date_posted:today'  #'data_range:2023-05-18'   #'date_posted:today'                 
+                'chips': 'date_posted:2023-07-12'  #'date_range:2023-05-18'   #'date_posted:today'                 
             }
 
             # get results 
@@ -138,5 +136,3 @@ if __name__ == "__main__":
     uule_code = uule_grabber.uule(canonical_name)
 
     collect_data_w_serpapi(uule_code)
-
-
