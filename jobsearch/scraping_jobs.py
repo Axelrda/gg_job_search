@@ -1,6 +1,6 @@
 ## IMPORT NECESSARY LIBRARIES
 import pandas as pd
-import csv 
+import csv
 
 # Scraping google jobs w/ serpapi
 from serpapi import GoogleSearch
@@ -17,7 +17,6 @@ import sqlite3
 # necessary for path to files
 from config import DB_PATH
 
-API_KEY = '4b799b64af09be918f6d66d6e908184cba836c46596e58bfa8bf1fb9280e7f09' 
 SEARCH_QUERIES = ["machine learning engineer", "data scientist", "data analyst", "data engineer"]
 COUNTRY_CODE = 'FR'
 TARGET_TYPE = 'Country'
@@ -31,8 +30,8 @@ def get_canonical_name():
     try:
         # get canonical name for location of interest ==> FRANCE
         cursor.execute("""
-            SELECT "Canonical Name" 
-            FROM google_geotargets 
+            SELECT "Canonical Name"
+            FROM google_geotargets
             WHERE "Target Type" = ? AND "Country Code" = ?;
         """, (TARGET_TYPE, COUNTRY_CODE))
 
@@ -62,23 +61,23 @@ def collect_data_w_serpapi(uule_code):
 
         # define parameters
             params = {
-                'api_key': API_KEY,                              
+                'api_key': API_KEY,
                 'device':'desktop',
-                'uule': uule_code,                         # encoded location 
+                'uule': uule_code,                         # encoded location
                 'q': query,                          # search query
-                'google_domain': 'google.fr',              
+                'google_domain': 'google.fr',
                 'hl': 'fr',                                 # language of the search
                 'gl': 'fr',                                 # country of the search
                 'engine': 'google_jobs',                    # SerpApi search engine
                 'start': start,                             # pagination
-                'chips': 'date_posted:2023-07-12'  #'date_range:2023-05-18'   #'date_posted:today'                 
+                'chips': 'date_posted:2023-07-12'  #'date_range:2023-05-18'   #'date_posted:today'
             }
 
-            # get results 
+            # get results
             search = GoogleSearch(params)
-            results = search.get_dict()  # JSON file to python dict 
+            results = search.get_dict()  # JSON file to python dict
 
-            # check if last search page, exceptions handling   
+            # check if last search page, exceptions handling
             try:
                 if results['error'] == "Google hasn't returned any results for this query.":
                         break
@@ -90,7 +89,7 @@ def collect_data_w_serpapi(uule_code):
             # create dataframe of 10 pulled results
             jobs = results['jobs_results']
             jobs = pd.DataFrame(jobs)
-            jobs = pd.concat([pd.DataFrame(jobs), 
+            jobs = pd.concat([pd.DataFrame(jobs),
                             pd.json_normalize(jobs['detected_extensions'])], #convert detected extension key in json files into pandas df
                             axis=1).drop('detected_extensions', axis=1) # drop json object
             jobs['date_time'] = datetime.datetime.now() # add extraction date column for job results
@@ -104,7 +103,7 @@ def collect_data_w_serpapi(uule_code):
             # assign ongoing query to pulled results dataframe
             jobs_all['search_query'] = query
 
-            # concat dataframe of all pulled results with all_jobs_queries 
+            # concat dataframe of all pulled results with all_jobs_queries
             all_jobs_queries = pd.concat([all_jobs_queries, jobs_all])
 
     # get rid of duplicates before export
@@ -114,7 +113,7 @@ def collect_data_w_serpapi(uule_code):
     all_jobs_queries = all_jobs_queries.reindex(columns=['title', 'company_name', 'location', 'via', 'description',
        'job_highlights', 'related_links', 'thumbnail', 'extensions', 'job_id',
        'posted_at', 'schedule_type', 'date_time', 'search_query'])
-    
+
     all_jobs_queries.to_csv('all_jobs.csv', index=False)
 
     # convert value to str format (sql database doesn't accept list type)
