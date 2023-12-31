@@ -2,11 +2,11 @@
 import pandas as pd
 import csv
 
-# Scraping google jobs w/ serpapi
-from serpapi import GoogleSearch
-
 import json
 import datetime
+
+# Scraping google jobs w/ serpapi
+import serpapi
 
 # generate UULE code from adress
 import uule_grabber
@@ -14,14 +14,10 @@ import uule_grabber
 # connect to SQLite database
 import sqlite3
 
-# necessary for path to files
-from config import DB_PATH
+from jobsearch.params import API_KEY, DB_PATH, TARGET_TYPE, COUNTRY_CODE, SEARCH_QUERIES
 
-SEARCH_QUERIES = ["machine learning engineer", "data scientist", "data analyst", "data engineer"]
-COUNTRY_CODE = 'FR'
-TARGET_TYPE = 'Country'
 
-def get_canonical_name():
+def get_canonical_name(DB_PATH):
 
     # Connect to SQLite and create a new database (or open it if it already exists)
     conn = sqlite3.connect(DB_PATH)
@@ -42,22 +38,24 @@ def get_canonical_name():
 
     return canonical_name
 
-def collect_data_w_serpapi(uule_code):
-    # Defining our search query + necessary parameters for GoogleSearch object
+def convert_to_uule(canonical_name):
 
-    # initialize jobs_all outside of the loop
-    jobs_all = pd.DataFrame()
+    # convert canonical_name to uule code
+    uule_code = uule_grabber.uule(canonical_name)
 
-    # initialize all_jobs_queries outside of function
-    all_jobs_queries = pd.DataFrame()
+    return uule_code
 
-    #for date in datelist:
+def scrape_jobs_serpapi(SEARCH_QUERIES, API_KEY, uule_code, date="today"):
+
+    all_jobs = pd.DataFrame()
+
+    print("Starting jobs scraping ...")
+
     for query in SEARCH_QUERIES:
 
-        # serpapi will iterate up to n number of iterations
         for num  in range(50):
 
-            start = num * 10
+            start_page = num * 10
 
         # define parameters
             params = {
@@ -69,69 +67,75 @@ def collect_data_w_serpapi(uule_code):
                 'hl': 'fr',                                 # language of the search
                 'gl': 'fr',                                 # country of the search
                 'engine': 'google_jobs',                    # SerpApi search engine
-                'start': start,                             # pagination
-                'chips': 'date_posted:2023-07-12'  #'date_range:2023-05-18'   #'date_posted:today'
+                'start': start_page,                             # pagination
+                'chips': f'date_posted:{date}'  #'date_range:2023-05-18'   #'date_posted:today'
             }
 
-            # get results
-            search = GoogleSearch(params)
-            results = search.get_dict()  # JSON file to python dict
+            # query serapi
+            search = serpapi.search(params=params)
+            # get results as dict
+            res = search.as_dict()
 
             # check if last search page, exceptions handling
             try:
-                if results['error'] == "Google hasn't returned any results for this query.":
+                if res['error'] == "Google hasn't returned any results for this query.":
                         break
             except KeyError:
-                    print(f"Getting SerpAPI data for page: {start} of '{query}' results")
+                    print(f"Getting SerpAPI data for page: {start_page} - {start_page+10} of '{query}' results")
             else:
                     continue
 
-            # create dataframe of 10 pulled results
-            jobs = results['jobs_results']
-            jobs = pd.DataFrame(jobs)
-            jobs = pd.concat([pd.DataFrame(jobs),
-                            pd.json_normalize(jobs['detected_extensions'])], #convert detected extension key in json files into pandas df
-                            axis=1).drop('detected_extensions', axis=1) # drop json object
-            jobs['date_time'] = datetime.datetime.now() # add extraction date column for job results
+            # discard search metadata, keep job results
+            jobs = res['jobs_results']
 
-            # concat dataframe of 10 pulled results with jobs_all
-            if start == 0:
-                    jobs_all = jobs
-            else:
-                    jobs_all = pd.concat([jobs_all, jobs])
+            # convert to dataframe
+            jobs_df = pd.DataFrame(jobs)
+            # convert json columns to dataframe
+            normalized_extensions = pd.json_normalize(jobs_df['detected_extensions'])
 
-            # assign ongoing query to pulled results dataframe
-            jobs_all['search_query'] = query
+            ten_jobs_df = pd.concat([jobs_df, normalized_extensions],axis=1).drop('detected_extensions', axis=1)
+            ten_jobs_df['date_time'] = datetime.datetime.now()
+            ten_jobs_df['search_query'] = query
 
-            # concat dataframe of all pulled results with all_jobs_queries
-            all_jobs_queries = pd.concat([all_jobs_queries, jobs_all])
+            # concat dataframe of 10 pulled results with all_jobs
+            all_jobs = pd.concat([all_jobs, ten_jobs_df])
 
-    # get rid of duplicates before export
-    all_jobs_queries.drop_duplicates(subset='description', inplace=True)
+    all_jobs = all_jobs.drop_duplicates(subset='description')
 
-    # reindex columns to match the order of existing data
-    all_jobs_queries = all_jobs_queries.reindex(columns=['title', 'company_name', 'location', 'via', 'description',
-       'job_highlights', 'related_links', 'thumbnail', 'extensions', 'job_id',
-       'posted_at', 'schedule_type', 'date_time', 'search_query'])
+    all_jobs = all_jobs.reindex(columns=['title', 'company_name', 'location', 'via', 'description',
+        'job_highlights', 'related_links', 'thumbnail', 'extensions', 'job_id',
+        'posted_at', 'schedule_type', 'date_time', 'search_query'])
 
-    all_jobs_queries.to_csv('all_jobs.csv', index=False)
+    all_jobs = all_jobs.reset_index(drop=True)
 
+    print("Scraping jobs finished ✅")
+
+    print(f"{all_jobs.shape[0]} jobs were scraped")
+
+    return all_jobs
+
+
+def export_to_sqlite(DB_PATH, all_jobs):
+    #### EXPORT TO SQLITE DATABASE ####
     # convert value to str format (sql database doesn't accept list type)
-    for column in all_jobs_queries.columns:
-        all_jobs_queries[column] = all_jobs_queries[column].apply(lambda x: str(x) if isinstance(x, list) else x)
+    for column in all_jobs.columns:
+        all_jobs[column] = all_jobs[column].apply(lambda x: str(x) if isinstance(x, list) else x)
+
+    print("Now, exporting data to SQL database ...")
 
     # export data to database
     with sqlite3.connect(DB_PATH) as conn:
-        all_jobs_queries.to_sql('unprocessed_data', conn, if_exists='append', index=False)
+        all_jobs.to_sql('unprocessed_data', conn, if_exists='append', index=False)
 
-    print("Shape of df:", all_jobs_queries.shape)
+    print("Data exported ✅")
 
 
 if __name__ == "__main__":
 
-    canonical_name = get_canonical_name()
+    canonical_name = get_canonical_name(DB_PATH)
 
-    # convert canonical_name to uule code
-    uule_code = uule_grabber.uule(canonical_name)
+    uule_code = convert_to_uule(canonical_name)
 
-    collect_data_w_serpapi(uule_code)
+    all_jobs = scrape_jobs_serpapi(SEARCH_QUERIES, API_KEY, uule_code, date="today")
+
+    export_to_sqlite(DB_PATH, all_jobs)
