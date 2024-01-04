@@ -3,6 +3,9 @@ data/*
 !data/README.md
 db/
 
-
+.direnv
 .envrc
 .env
+
+
+.gitattributes
