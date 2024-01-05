@@ -1,14 +1,16 @@
 import sqlite3
 # necessary for path to files
-from config import DB_PATH
+from params import DB_PATH
 
 
 
 def deduplicate_data(DB_PATH):
     conn = sqlite3.connect(DB_PATH)
+    print(DB_PATH)
     c = conn.cursor()
-
+    print("Opening Database ...")
     try:
+        print("Starting data deduplication - first pass ...")
         # Start a transaction
         c.execute('BEGIN TRANSACTION;')
 
@@ -33,5 +35,9 @@ def deduplicate_data(DB_PATH):
         # Rollback the transaction if there was an error
         conn.rollback()
     finally:
+        print("Closing database ...")
         # Close the connection
         conn.close()
+
+if __name__ == "__main__":
+    deduplicate_data(DB_PATH)
