@@ -14,7 +14,7 @@ import uule_grabber
 # connect to SQLite database
 import sqlite3
 
-from params import API_KEY, DB_PATH, TARGET_TYPE, COUNTRY_CODE, SEARCH_QUERIES
+from jobsearch.params import API_KEY, DB_PATH, TARGET_TYPE, COUNTRY_CODE, SEARCH_QUERIES
 
 
 def get_canonical_name(DB_PATH):
