@@ -1,8 +1,17 @@
 import os
 
-SERPAPI_KEY = os.environ.get("API_KEY")
-SEARCH_QUERIES = os.environ.get("SEARCH_QUERIES").split(',')
-COUNTRY_CODE = os.environ.get("COUNTRY_CODE")
-TARGET_TYPE = os.environ.get("TARGET_TYPE")
+SERPAPI_KEY = os.environ.get("SERPAPI_KEY")
+SERPAPI_SEARCH_QUERIES = os.environ.get("SERPAPI_SEARCH_QUERIES").split(',')
+
+GOOGLE_GEOTARGET_COUNTRY_CODE = os.environ.get("GOOGLE_GEOTARGET_COUNTRY_CODE")
+GOOGLE_GEOTARGET_TARGET_TYPE = os.environ.get("GOOGLE_GEOTARGET_TARGET_TYPE")
+
+FRANCE_UULE_CODE = os.environ.get('FRANCE_UULE_CODE')
+FRANCE_CANONICAL_NAME = os.environ.get('FRANCE_CANONICAL_NAME')
+
 DB_PATH = os.environ.get("DB_PATH")
+
+# OPENAI VAR
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
+
+LANG_CLASSIF_MODEL = os.environ.get('LANG_CLASSIF_MODEL')
