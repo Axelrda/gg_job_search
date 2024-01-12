@@ -14,10 +14,10 @@ import uule_grabber
 # connect to SQLite database
 import sqlite3
 
-from jobsearch.params import API_KEY, DB_PATH, TARGET_TYPE, COUNTRY_CODE, SEARCH_QUERIES
+from jobsearch.params import SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, DB_PATH, GOOGLE_GEOTARGET_COUNTRY_CODE, GOOGLE_GEOTARGET_TARGET_TYPE, FRANCE_UULE_CODE
 
 
-def get_canonical_name(DB_PATH):
+def get_canonical_name(DB_PATH, GOOGLE_GEOTARGET_TARGET_TYPE, GOOGLE_GEOTARGET_COUNTRY_CODE):
 
     # Connect to SQLite and create a new database (or open it if it already exists)
     conn = sqlite3.connect(DB_PATH)
@@ -29,7 +29,7 @@ def get_canonical_name(DB_PATH):
             SELECT "Canonical Name"
             FROM google_geotargets
             WHERE "Target Type" = ? AND "Country Code" = ?;
-        """, (TARGET_TYPE, COUNTRY_CODE))
+        """, (GOOGLE_GEOTARGET_TARGET_TYPE, GOOGLE_GEOTARGET_COUNTRY_CODE))
 
         canonical_name = cursor.fetchall()[0][0]
 
@@ -45,13 +45,13 @@ def convert_to_uule(canonical_name):
 
     return uule_code
 
-def scrape_jobs_serpapi(SEARCH_QUERIES, API_KEY, uule_code, date="today"):
+def scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, uule_code, date="today"):
 
     all_jobs = pd.DataFrame()
 
     print("Starting jobs scraping ...")
 
-    for query in SEARCH_QUERIES:
+    for query in SERPAPI_SEARCH_QUERIES:
 
         for num  in range(50):
 
@@ -59,7 +59,7 @@ def scrape_jobs_serpapi(SEARCH_QUERIES, API_KEY, uule_code, date="today"):
 
         # define parameters
             params = {
-                'api_key': API_KEY,
+                'api_key': SERPAPI_KEY,
                 'device':'desktop',
                 'uule': uule_code,                         # encoded location
                 'q': query,                          # search query
@@ -132,10 +132,7 @@ def export_to_sqlite(DB_PATH, all_jobs):
 
 if __name__ == "__main__":
 
-    canonical_name = get_canonical_name(DB_PATH)
-
-    uule_code = convert_to_uule(canonical_name)
-
-    all_jobs = scrape_jobs_serpapi(SEARCH_QUERIES, API_KEY, uule_code, date="today")
-
+    # canonical_name = get_canonical_name(DB_PATH, GOOGLE_GEOTARGET_TARGET_TYPE, GOOGLE_GEOTARGET_COUNTRY_CODE)
+    # uule_code = convert_to_uule(canonical_name)
+    all_jobs = scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, FRANCE_UULE_CODE, date="today")
     export_to_sqlite(DB_PATH, all_jobs)
