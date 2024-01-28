@@ -1,9 +1,7 @@
-## IMPORT NECESSARY LIBRARIES
-import pandas as pd
-import csv
-
-import json
+import sqlite3
+import argparse
 import datetime
+import pandas as pd
 
 # Scraping google jobs w/ serpapi
 import serpapi
@@ -11,10 +9,8 @@ import serpapi
 # generate UULE code from adress
 import uule_grabber
 
-# connect to SQLite database
-import sqlite3
 
-from jobsearch.params import SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, DB_PATH, GOOGLE_GEOTARGET_COUNTRY_CODE, GOOGLE_GEOTARGET_TARGET_TYPE, FRANCE_UULE_CODE
+from jobsearch.params import *
 
 
 def get_canonical_name(DB_PATH, GOOGLE_GEOTARGET_TARGET_TYPE, GOOGLE_GEOTARGET_COUNTRY_CODE):
@@ -79,11 +75,11 @@ def scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, uule_code, date="to
             # check if last search page, exceptions handling
             try:
                 if res['error'] == "Google hasn't returned any results for this query.":
-                        break
+                    break
             except KeyError:
-                    print(f"Getting SerpAPI data for page: {start_page} - {start_page+10} of '{query}' results")
+                print(f"Getting SerpAPI data for page: {start_page} - {start_page+10} of '{query}' results")
             else:
-                    continue
+                continue
 
             # discard search metadata, keep job results
             jobs = res['jobs_results']
@@ -93,7 +89,8 @@ def scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, uule_code, date="to
             # convert json columns to dataframe
             normalized_extensions = pd.json_normalize(jobs_df['detected_extensions'])
 
-            ten_jobs_df = pd.concat([jobs_df, normalized_extensions],axis=1).drop('detected_extensions', axis=1)
+            ten_jobs_df = pd.concat([jobs_df, normalized_extensions],axis=1)
+            ten_jobs_df = ten_jobs_df.drop('detected_extensions', axis=1)
             ten_jobs_df['date_time'] = datetime.datetime.now()
             ten_jobs_df['search_query'] = query
 
@@ -131,8 +128,13 @@ def export_to_sqlite(DB_PATH, all_jobs):
 
 
 if __name__ == "__main__":
+    # Create the parser and add arguments
+    parser = argparse.ArgumentParser(description='Scrape jobs using SerpAPI.')
+    parser.add_argument('-d', '--date', default='today', help='Date to scrape jobs for (default: today). Format YYYY-MM-DD.')
 
-    # canonical_name = get_canonical_name(DB_PATH, GOOGLE_GEOTARGET_TARGET_TYPE, GOOGLE_GEOTARGET_COUNTRY_CODE)
-    # uule_code = convert_to_uule(canonical_name)
-    all_jobs = scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, FRANCE_UULE_CODE, date="today")
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Use the date argument
+    all_jobs = scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, FRANCE_UULE_CODE, args.date)
     export_to_sqlite(DB_PATH, all_jobs)
