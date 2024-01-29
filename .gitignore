@@ -13,3 +13,4 @@ db/
 
 .gitattributes
 jobsearch.egg-info/
+.logs/*
