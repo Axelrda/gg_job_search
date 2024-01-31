@@ -31,3 +31,10 @@ def convert_json_columns_to_dict(df, columns):
         if column in df:
             df[column] = df[column].apply(lambda x: json.loads(x) if isinstance(x, str) else x)
     return df
+
+def export_dataframe_to_csv(df, output_path="."):
+    df.to_csv(output_path, mode='a', index=False, header=False)
+
+def get_dataframe_memory_usage(df):
+    mem = (df.memory_usage(deep=True) / (1024*1024)).round(2)
+    return mem
