@@ -1,47 +1,16 @@
+import pandas as pd
+
 import sqlite3
 import argparse
 import datetime
-import pandas as pd
 
-# Scraping google jobs w/ serpapi
 import serpapi
-
-# generate UULE code from adress
-import uule_grabber
-
+from sqlalchemy import create_engine
 
 from jobsearch.params import *
 
 
-def get_canonical_name(DB_PATH, GOOGLE_GEOTARGET_TARGET_TYPE, GOOGLE_GEOTARGET_COUNTRY_CODE):
-
-    # Connect to SQLite and create a new database (or open it if it already exists)
-    conn = sqlite3.connect(DB_PATH)
-    cursor = conn.cursor()
-
-    try:
-        # get canonical name for location of interest ==> FRANCE
-        cursor.execute("""
-            SELECT "Canonical Name"
-            FROM google_geotargets
-            WHERE "Target Type" = ? AND "Country Code" = ?;
-        """, (GOOGLE_GEOTARGET_TARGET_TYPE, GOOGLE_GEOTARGET_COUNTRY_CODE))
-
-        canonical_name = cursor.fetchall()[0][0]
-
-    finally:
-        conn.close()
-
-    return canonical_name
-
-def convert_to_uule(canonical_name):
-
-    # convert canonical_name to uule code
-    uule_code = uule_grabber.uule(canonical_name)
-
-    return uule_code
-
-def scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, uule_code, date="today"):
+def scrape_google_search_jobs_with_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, uule_code, date="today", page_num=50):
 
     all_jobs = pd.DataFrame()
 
@@ -49,7 +18,7 @@ def scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, uule_code, date="to
 
     for query in SERPAPI_SEARCH_QUERIES:
 
-        for num  in range(50):
+        for num  in range(page_num):
 
             start_page = num * 10
 
@@ -77,7 +46,7 @@ def scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, uule_code, date="to
                 if res['error'] == "Google hasn't returned any results for this query.":
                     break
             except KeyError:
-                print(f"Getting SerpAPI data for page: {start_page} - {start_page+10} of '{query}' results")
+                print(f"Getting SerpAPI data for results: {start_page} - {start_page+10} of '{query}' query")
             else:
                 continue
 
@@ -105,36 +74,8 @@ def scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, uule_code, date="to
 
     all_jobs = all_jobs.reset_index(drop=True)
 
-    print("Scraping jobs finished ✅")
+    print("✅ Scraping jobs finished")
 
     print(f"{all_jobs.shape[0]} jobs were scraped")
 
     return all_jobs
-
-
-def export_to_sqlite(DB_PATH, all_jobs):
-    #### EXPORT TO SQLITE DATABASE ####
-    # convert value to str format (sql database doesn't accept list type)
-    for column in all_jobs.columns:
-        all_jobs[column] = all_jobs[column].apply(lambda x: str(x) if isinstance(x, list) else x)
-
-    print("Now, exporting data to SQL database ...")
-
-    # export data to database
-    with sqlite3.connect(DB_PATH) as conn:
-        all_jobs.to_sql('unprocessed_data', conn, if_exists='append', index=False)
-
-    print("Data exported ✅")
-
-
-if __name__ == "__main__":
-    # Create the parser and add arguments
-    parser = argparse.ArgumentParser(description='Scrape jobs using SerpAPI.')
-    parser.add_argument('-d', '--date', default='today', help='Date to scrape jobs for (default: today). Format YYYY-MM-DD.')
-
-    # Parse the arguments
-    args = parser.parse_args()
-
-    # Use the date argument
-    all_jobs = scrape_jobs_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, FRANCE_UULE_CODE, args.date)
-    export_to_sqlite(DB_PATH, all_jobs)
