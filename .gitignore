@@ -3,12 +3,14 @@ __pycache__
 # data related files
 data/*
 !data/README.md
-db/
+db/*
+
 
 # environment management
 .direnv
 .envrc
 .env
+.cron.env
 
 
 .gitattributes
