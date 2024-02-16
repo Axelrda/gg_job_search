@@ -12,7 +12,9 @@ db/*
 .env
 .cron.env
 
+models/*
 
 .gitattributes
 jobsearch.egg-info/
 logs/*
+__pycache__/
