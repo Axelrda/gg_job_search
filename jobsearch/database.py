@@ -145,11 +145,12 @@ def handle_db_error(func):
 
 # Refactored function to fetch data from postgresql
 @handle_db_error  # Use the helper function as a decorator
-def fetch_data_from_postgresql(table_name: str = "raw_data", import_from_cloud: bool = False) -> pd.DataFrame:
+def fetch_data_from_postgresql(table_name: str = "raw_data", columns: str = "*", import_from_cloud: bool = False) -> pd.DataFrame:
     """Fetch data from postgresql.
 
     Args:
         table_name (str, optional): The name of the table to fetch. Defaults to "raw_data".
+        columns (str, optional): The name of the columns to fetch. Defauts to "*".
         import_from_cloud (bool, optional): Whether to import from the cloud or local database. Defaults to False.
 
     Returns:
@@ -161,7 +162,7 @@ def fetch_data_from_postgresql(table_name: str = "raw_data", import_from_cloud: 
     
     # Establish a connection and execute a query
     with engine.connect() as connection:
-        query = f"SELECT * FROM {table_name}"
+        query = f"SELECT {columns} FROM {table_name}"
         df = pd.read_sql_query(query, connection)
 
     return df
