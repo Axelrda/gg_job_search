@@ -4,7 +4,6 @@ import unicodedata
 import re
 import requests
 
-
 def get_salary_currency(salaries):
 
   cond_period = [

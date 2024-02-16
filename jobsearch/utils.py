@@ -1,4 +1,12 @@
 import json
+import uule_grabber
+
+def convert_canonical_name_to_uule_code(canonical_name):
+
+    # convert canonical_name to uule code
+    uule_code = uule_grabber.uule(canonical_name)
+
+    return uule_code
 
 def convert_dict_columns_to_json(df, columns):
     """
@@ -16,7 +24,7 @@ def convert_dict_columns_to_json(df, columns):
             df[column] = df[column].apply(json.dumps)
     return df
 
-def convert_json_columns_to_dict(df, columns):
+def convert_json_columns_to_dict(df, columns: list = ['related_links', 'job_highlights']):
     """
     Converts specified JSON string columns in a DataFrame back to dictionaries.
 
