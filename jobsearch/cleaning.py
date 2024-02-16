@@ -186,7 +186,7 @@ def cast_cols_values_to_list(df, cols_to_list):
     df (pandas.DataFrame): The DataFrame containing the columns.
     cols_to_list (list of str): List of column names whose string-represented list values
                                 are to be converted to actual lists.
-
+            
     Returns:
     pandas.DataFrame: The DataFrame with the values of specified columns converted to lists.
     """
@@ -219,4 +219,17 @@ def perform_data_casting(df,
     if cols_to_list:
         df = cast_cols_values_to_list(df, cols_to_list)
 
+    return df
+
+def get_records_from_date(df, date: str = '2024-01-30'):
+	df = cast_col_to_datetime(df)
+	data = df[df.date_time.dt.date.astype(str) == date]
+ 
+	return data
+
+def load_and_clean_data(db_path):
+    data = fetch_table_data(db_path)
+    df = data.copy()
+    df = drop_columns(df)
+    df = perform_data_casting(df)
     return df
