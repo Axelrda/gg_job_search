@@ -4,69 +4,60 @@ from torch.utils.data import DataLoader
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
 from tqdm import tqdm
 
-from jobsearch.params import DB_PATH, LANG_CLASSIF_MODEL
+import os
 
 
-def tokenize(text_corpus, model_name):
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    return tokenizer(text_corpus,
-                     truncation=True,
-                     padding=True,
-                     max_length=512,
-                     return_tensors="pt")
-    
-def tokenize_corpus_with_progress_bar(corpus, tokenizer, tokenizer_args):
-  # apply the tokenizer to each element of the corpus with a progress bar
-  inputs = [tokenizer(d, **tokenizer_args) for d in tqdm(corpus, total=len(corpus), unit=" elements", desc="Tokenizing")]
-  return inputs
-
-tokenizer_args = {"truncation": True, "padding": True, "max_length": 512, "return_tensors": "pt"}
+def tokenize_descriptions(descriptions, model_path):
+    tokenizer = AutoTokenizer.from_pretrained(model_path)
+    inputs = tokenizer(descriptions,
+                       truncation=True,
+                       padding=True,
+                       max_length=512,
+                       return_tensors="pt")
+    return inputs
 
 class PyTorchEncodedDataset(torch.utils.data.Dataset):
     def __init__(self, encodings):
         self.encodings = encodings
 
     def __getitem__(self, idx):
-        return {key: torch.tensor(val[idx]) for key, val in self.encodings.items() if key in ['input_ids', 'attention_mask']}
+        return {key: val[idx] for key, val in self.encodings.items() if key in ['input_ids', 'attention_mask']}
 
     def __len__(self):
-        return len(self.encodings.input_ids)
+        return self.encodings.input_ids.shape[0]  # Adjusted for tensor shape
 
-def create_pytorch_dataloader(inputs, batch_size=50):
-    torch_descriptions = PyTorchEncodedDataset(inputs)
-    return DataLoader(torch_descriptions, batch_size=batch_size)
+def create_data_loader(inputs, batch_size=16):
+    dataset = PyTorchEncodedDataset(inputs)
+    return DataLoader(dataset, batch_size=batch_size)
 
-def load_classifier(device, model_name):
-    classifier = AutoModelForSequenceClassification.from_pretrained(model_name)
-    classifier.to(device)
-    return classifier
+def setup_model_and_device(model_path):
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    model = AutoModelForSequenceClassification.from_pretrained(model_path)
+    model.to(device)
+    return model, device
 
-def infer_from_dataloader_batches(model, dataloader):
+def run_inference(model, dataloader, device):
+    model.eval()  # Set model to evaluation mode
     logit_list = []
     with torch.no_grad():
-        for batch in tqdm(dataloader):
+        for batch in tqdm(dataloader, desc="Processing batches"):
             batch = {k: v.to(device) for k, v in batch.items()}
             logits = model(**batch).logits
-            logit_list.append(logits)
+            logit_list.append(logits.cpu())
     return logit_list
 
-def post_process_logit_list(logit_list, model_name):
-    id_list = [line.argmax().item() for batch in logit_list for line in batch]
+def post_process_logits(logit_list, model):
+    id_list = [logit.argmax().item() for logits in logit_list for logit in logits]
     id_col = pd.Series(id_list)
+    lang_labels = id_col.map(model.config.id2label)
+    lang_labels.rename('lang_labels', inplace=True)
+    return lang_labels
 
-    classifier = load_classifier(device, model_name)
-    labels = id_col.map(classifier.config.id2label)
-    labels.rename('lang_labels', inplace=True)
-    return labels
-
-if __name__ == "__main__":
-    # df = load_and_clean_data(DB_PATH)
-    # descriptions = sample_descriptions(df)
-    # inputs = tokenize_descriptions(descriptions, LANG_CLASSIF_MODEL)
-    # dataloader = create_data_loader(inputs)
-    # device = torch.device('cpu')  # Change to 'cuda' if GPU is available
-    # logit_list = perform_inference(dataloader, device, LANG_CLASSIF_MODEL)
-    # lang_labels = post_processing(logit_list, LANG_CLASSIF_MODEL)
-    # print(lang_labels.value_counts())
-    # export_path = '/content/drive/MyDrive/github/gg_job_search/data/lang_labels.csv'
-    # export_results(lang_labels, export_path)
+def detect_language(model_path:str, df:pd.DataFrame, column: str = "description"):   
+    descriptions = df[column].to_list()
+    inputs = tokenize_descriptions(descriptions, model_path)
+    dataloader = create_data_loader(inputs, 16)
+    model, device = setup_model_and_device(model_path)
+    logit_list = run_inference(model, dataloader, device)
+    lang_labels = post_process_logits(logit_list, model)
+    return lang_labels
