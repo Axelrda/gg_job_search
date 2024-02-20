@@ -62,6 +62,7 @@ def scrape_google_search_jobs_with_serpapi(SERPAPI_SEARCH_QUERIES, SERPAPI_KEY, 
             ten_jobs_df = ten_jobs_df.drop('detected_extensions', axis=1)
             ten_jobs_df['date_time'] = datetime.datetime.now()
             ten_jobs_df['search_query'] = query
+            ten_jobs_df['local_sync_timestamp'] = pd.NaT
 
             # concat dataframe of 10 pulled results with all_jobs
             all_jobs = pd.concat([all_jobs, ten_jobs_df])

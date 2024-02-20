@@ -20,7 +20,7 @@ cd $HOME/gg_job_search || { echo "[$(date)] Failed to change directory"; exit 1;
 echo "[$(date)] Sourcing environment variables" >> $LOG_FILE
 source $HOME/gg_job_search/cron.env || { echo "[$(date)] Failed to source env var"; exit 1; }
 
-/home/axelus/.pyenv/shims/python -m jobsearch -n 50
+/home/axelus/.pyenv/shims/python -m jobsearch -n 50 --cloud
 echo "[$(date)] Script finished"
 
 } >> $LOG_FILE 2>&1

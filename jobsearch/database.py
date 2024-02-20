@@ -5,6 +5,27 @@ from contextlib import suppress
 import sqlalchemy
 from sqlalchemy import create_engine
 from jobsearch.params import *
+from sqlalchemy.dialects.postgresql import JSONB, TIMESTAMP
+from sqlalchemy.types import Integer, Text
+
+
+SCRAPE_JOBS_DTYPES = {
+    'title': Text,
+    'company_name': Text,
+    'location': Text,
+    'via': Text,
+    'description': Text,
+    #'job_highlights': JSONB,  
+    #'related_links': JSONB,   
+    'thumbnail': Text,
+    'extensions': Text,
+    'job_id': Text,
+    'posted_at': Text,
+    'schedule_type': Text,
+    'date_time': TIMESTAMP,
+    'search_query': Text,
+    'local_sync_timestamp': TIMESTAMP
+}
 
 
 def get_canonical_name(db_path, google_geotarget_target_type, google_geotarget_country_code):
@@ -169,7 +190,7 @@ def fetch_data_from_postgresql(table_name: str = "raw_data", columns: str = "*",
 
 # Refactored function to export dataframe to postgres
 @handle_db_error  # Use the helper function as a decorator
-def export_dataframe_to_postgresql(df: pd.DataFrame, table_name: str = 'raw_data', if_table_exists: str = 'append', export_to_cloud: bool = False) -> None:
+def export_dataframe_to_postgresql(df: pd.DataFrame, table_name: str = 'raw_data', if_table_exists: str = 'append', export_to_cloud: bool = False, dtypes:dict = SCRAPE_JOBS_DTYPES) -> None:
     """Export dataframe to postgres.
 
     Args:
@@ -188,7 +209,7 @@ def export_dataframe_to_postgresql(df: pd.DataFrame, table_name: str = 'raw_data
         trans = conn.begin()
         try:
             # Use Pandas to_sql with a small subset of the DataFrame
-            df.to_sql(table_name, conn, if_exists=if_table_exists, index=False)
+            df.to_sql(table_name, conn, if_exists=if_table_exists, index=False, dtype=dtypes)
 
             # Commit the transaction
             trans.commit()
