@@ -2,6 +2,9 @@ __pycache__
 
 # data related files
 data/*
+!data/fine-tuning_data
+!data/json_schema
+!data/prompts
 !data/README.md
 db/*
 
