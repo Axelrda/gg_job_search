@@ -24,3 +24,8 @@ POSTGRES_DATABASE=os.environ.get("POSTGRES_DATABASE")
 OPENAI_API_KEY = os.environ.get('OPENAI_API_KEY')
 
 LANG_CLASSIF_MODEL = os.environ.get('LANG_CLASSIF_MODEL')
+ARIA_70B_QUANTIZED = os.environ.get('ARIA_70B_QUANTIZED')
+FT_DATASET_HF= os.environ.get('FT_DATASET_HF')
+
+# HUGGIGNFACE
+HF_TOKEN = os.environ.get('HF_TOKEN')
