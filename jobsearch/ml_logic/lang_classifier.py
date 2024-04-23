@@ -53,9 +53,9 @@ def post_process_logits(logit_list, model):
     lang_labels.rename('lang_labels', inplace=True)
     return lang_labels
 
-def detect_language(model_path:str, df:pd.DataFrame, column: str = "description"):   
-    descriptions = df[column].to_list()
-    inputs = tokenize_descriptions(descriptions, model_path)
+def detect_language(str_list, model_path='../models/xlm-roberta-base-language-detection/'):   
+
+    inputs = tokenize_descriptions(str_list, model_path)
     dataloader = create_data_loader(inputs, 16)
     model, device = setup_model_and_device(model_path)
     logit_list = run_inference(model, dataloader, device)
